@@ -83,6 +83,22 @@ async def finnhub_request(endpoint: str, params: dict) -> dict:
         )
 
 
+@app.get("/")
+async def root():
+    """API overview"""
+    return {
+        "name": "Finnhub Wrapper",
+        "description": "Real-time stock quotes, company fundamentals, earnings, and news from Finnhub",
+        "endpoints": [
+            {"path": "/quote?symbol=AAPL", "description": "Get current stock quote"},
+            {"path": "/fundamentals?symbol=AAPL", "description": "Get company profile and financial metrics"},
+            {"path": "/earnings?symbol=AAPL", "description": "Get earnings history"},
+            {"path": "/news?symbol=AAPL", "description": "Get company news"},
+            {"path": "/health", "description": "Health check"}
+        ]
+    }
+
+
 @app.get("/health")
 async def health():
     """Health check endpoint."""
