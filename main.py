@@ -8,9 +8,7 @@ from fastapi.responses import JSONResponse
 import httpx
 
 
-FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY")
-if not FINNHUB_API_KEY:
-    raise RuntimeError("FINNHUB_API_KEY environment variable is required")
+FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
 
 FINNHUB_BASE_URL = "https://finnhub.io/api/v1"
 
@@ -34,7 +32,10 @@ def get_timestamp() -> str:
 
 async def finnhub_request(endpoint: str, params: dict) -> dict:
     """Make a request to Finnhub API with error handling."""
-    params["token"] = FINNHUB_API_KEY
+    api_key = FINNHUB_API_KEY or os.environ.get("FINNHUB_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="FINNHUB_API_KEY not configured")
+    params["token"] = api_key
     url = f"{FINNHUB_BASE_URL}{endpoint}"
 
     try:
