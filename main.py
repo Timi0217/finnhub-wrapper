@@ -135,6 +135,15 @@ async def get_fundamentals(symbol: str = Query(..., description="Stock symbol (e
     # Extract metric values
     metrics = metrics_data.get("metric", {})
 
+    # Finnhub returns marketCapitalization and shareOutstanding in millions — convert to raw units
+    raw_mc_profile = profile_data.get("marketCapitalization")
+    raw_mc_metrics = metrics.get("marketCapitalization")
+    raw_shares = profile_data.get("shareOutstanding")
+
+    mc_profile = raw_mc_profile * 1_000_000 if raw_mc_profile else raw_mc_profile
+    mc_metrics = raw_mc_metrics * 1_000_000 if raw_mc_metrics else raw_mc_metrics
+    shares_out = raw_shares * 1_000_000 if raw_shares else raw_shares
+
     return {
         "symbol": symbol,
         "profile": {
@@ -142,13 +151,13 @@ async def get_fundamentals(symbol: str = Query(..., description="Stock symbol (e
             "ticker": profile_data.get("ticker"),
             "exchange": profile_data.get("exchange"),
             "industry": profile_data.get("finnhubIndustry"),
-            "market_cap": profile_data.get("marketCapitalization"),
+            "market_cap": mc_profile,
             "country": profile_data.get("country"),
             "currency": profile_data.get("currency"),
             "ipo": profile_data.get("ipo"),
             "logo": profile_data.get("logo"),
             "phone": profile_data.get("phone"),
-            "share_outstanding": profile_data.get("shareOutstanding"),
+            "share_outstanding": shares_out,
             "weburl": profile_data.get("weburl")
         },
         "metrics": {
@@ -160,7 +169,7 @@ async def get_fundamentals(symbol: str = Query(..., description="Stock symbol (e
             "price_52week_high_date": metrics.get("52WeekHighDate"),
             "price_52week_low_date": metrics.get("52WeekLowDate"),
             "dividend_yield": metrics.get("dividendYieldIndicatedAnnual"),
-            "market_cap": metrics.get("marketCapitalization"),
+            "market_cap": mc_metrics,
             "revenue_per_share_ttm": metrics.get("revenuePerShareTTM"),
             "profit_margin": metrics.get("netProfitMarginTTM"),
             "operating_margin": metrics.get("operatingMarginTTM"),
