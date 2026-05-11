@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse, HTMLResponse
@@ -163,18 +164,14 @@ document.getElementById('symbol-input').addEventListener('keypress',e=>{if(e.key
 
 async function loadData(){
 const t0=Date.now();
-const results=await Promise.allSettled([
-fetch('/health').then(r=>r.json()),
-fetch('/quote?symbol='+currentSymbol).then(r=>r.json()),
-fetch('/fundamentals?symbol='+currentSymbol).then(r=>r.json()),
-fetch('/earnings?symbol='+currentSymbol).then(r=>r.json())
-]);
+const response=await fetch('/dashboard?symbol='+currentSymbol);
+const data=await response.json();
 const latency=Date.now()-t0;
 
-const health=results[0].status==='fulfilled'?results[0].value:null;
-const quote=results[1].status==='fulfilled'?results[1].value:null;
-const fund=results[2].status==='fulfilled'?results[2].value:null;
-const earn=results[3].status==='fulfilled'?results[3].value:null;
+const health=data.health;
+const quote=data.quote;
+const fund=data.fundamentals;
+const earn=data.earnings;
 
 if(health){
 document.getElementById('dot').classList.add('on');
@@ -317,6 +314,131 @@ async def root():
 async def health():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.get("/dashboard")
+async def dashboard(symbol: str = Query("AAPL", description="Stock symbol (e.g., AAPL)")):
+    """Dashboard endpoint - fetches all homepage data server-side in a single call."""
+    results = {
+        "health": None,
+        "quote": None,
+        "fundamentals": None,
+        "earnings": None,
+        "symbol": symbol,
+        "timestamp": get_timestamp()
+    }
+
+    # Fetch health
+    try:
+        results["health"] = {"status": "healthy"}
+    except Exception:
+        pass
+
+    await asyncio.sleep(0.05)
+
+    # Fetch quote
+    try:
+        data = await finnhub_request("/quote", {"symbol": symbol})
+        results["quote"] = {
+            "symbol": symbol,
+            "current_price": data.get("c"),
+            "change": data.get("d"),
+            "percent_change": data.get("dp"),
+            "high": data.get("h"),
+            "low": data.get("l"),
+            "open": data.get("o"),
+            "previous_close": data.get("pc"),
+            "timestamp": get_timestamp(),
+            "quote_timestamp": data.get("t")
+        }
+    except Exception:
+        pass
+
+    await asyncio.sleep(0.05)
+
+    # Fetch fundamentals
+    try:
+        profile_data = await finnhub_request("/stock/profile2", {"symbol": symbol})
+        await asyncio.sleep(0.05)
+        metrics_data = await finnhub_request("/stock/metric", {"symbol": symbol, "metric": "all"})
+
+        metrics = metrics_data.get("metric", {})
+
+        raw_mc_profile = profile_data.get("marketCapitalization")
+        raw_mc_metrics = metrics.get("marketCapitalization")
+        raw_shares = profile_data.get("shareOutstanding")
+
+        mc_profile = raw_mc_profile * 1_000_000 if raw_mc_profile else raw_mc_profile
+        mc_metrics = raw_mc_metrics * 1_000_000 if raw_mc_metrics else raw_mc_metrics
+        shares_out = raw_shares * 1_000_000 if raw_shares else raw_shares
+
+        results["fundamentals"] = {
+            "symbol": symbol,
+            "profile": {
+                "name": profile_data.get("name"),
+                "ticker": profile_data.get("ticker"),
+                "exchange": profile_data.get("exchange"),
+                "industry": profile_data.get("finnhubIndustry"),
+                "market_cap": mc_profile,
+                "country": profile_data.get("country"),
+                "currency": profile_data.get("currency"),
+                "ipo": profile_data.get("ipo"),
+                "logo": profile_data.get("logo"),
+                "phone": profile_data.get("phone"),
+                "share_outstanding": shares_out,
+                "weburl": profile_data.get("weburl")
+            },
+            "metrics": {
+                "pe_ratio": metrics.get("peBasicExclExtraTTM"),
+                "eps": metrics.get("epsBasicExclExtraItemsTTM"),
+                "beta": metrics.get("beta"),
+                "high_52week": metrics.get("52WeekHigh"),
+                "low_52week": metrics.get("52WeekLow"),
+                "price_52week_high_date": metrics.get("52WeekHighDate"),
+                "price_52week_low_date": metrics.get("52WeekLowDate"),
+                "dividend_yield": metrics.get("dividendYieldIndicatedAnnual"),
+                "market_cap": mc_metrics,
+                "revenue_per_share_ttm": metrics.get("revenuePerShareTTM"),
+                "profit_margin": metrics.get("netProfitMarginTTM"),
+                "operating_margin": metrics.get("operatingMarginTTM"),
+                "roe": metrics.get("roeTTM"),
+                "roa": metrics.get("roaTTM"),
+                "debt_equity": metrics.get("totalDebt/totalEquityQuarterly"),
+                "current_ratio": metrics.get("currentRatioQuarterly")
+            },
+            "timestamp": get_timestamp()
+        }
+    except Exception:
+        pass
+
+    await asyncio.sleep(0.05)
+
+    # Fetch earnings
+    try:
+        data = await finnhub_request("/stock/earnings", {"symbol": symbol})
+
+        earnings = []
+        for item in data:
+            surprise = item.get("actual", 0) - item.get("estimate", 0) if item.get("actual") is not None and item.get("estimate") is not None else None
+            surprise_pct = (surprise / item.get("estimate") * 100) if surprise is not None and item.get("estimate") and item.get("estimate") != 0 else None
+
+            earnings.append({
+                "period": item.get("period"),
+                "actual": item.get("actual"),
+                "estimate": item.get("estimate"),
+                "surprise": surprise,
+                "surprise_pct": surprise_pct
+            })
+
+        results["earnings"] = {
+            "symbol": symbol,
+            "earnings": earnings,
+            "timestamp": get_timestamp()
+        }
+    except Exception:
+        pass
+
+    return results
 
 
 @app.get("/quote")
