@@ -37,9 +37,10 @@ HOME_HTML = """<!DOCTYPE html>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#fff;padding:40px 20px;line-height:1.5}
 .w{max-width:640px;margin:0 auto}
 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.t{font-family:'Courier New',monospace;font-style:italic;font-size:28px;color:#2BBFBF;font-weight:600}
-.st{display:flex;align-items:center;gap:6px;font-size:13px;color:#666;font-family:'Courier New',monospace}
-.dot{width:8px;height:8px;border-radius:50%;background:#22c55e}
+.t{font-family:'Courier New',monospace;font-size:28px;color:#2BBFBF;font-weight:700}
+.st{display:flex;align-items:center;gap:6px;font-size:13px;color:#555;font-family:'Courier New',monospace}
+.dot{width:8px;height:8px;border-radius:50%;background:#555;transition:background .3s}
+.dot.on{background:#4CAF50}
 .sb{color:#888;font-size:14px;margin-bottom:32px}
 .cd{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;margin-bottom:16px;opacity:0;animation:fi .6s ease forwards}
 @keyframes fi{to{opacity:1}}
@@ -84,7 +85,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="w">
 <div class="hd">
 <div class="t">Finnhub</div>
-<div class="st"><span class="dot"></span><span id="health-status">checking...</span></div>
+<div class="st"><span class="dot" id="dot"></span><span id="health-status">connecting...</span></div>
 </div>
 <div class="sb">Real-time stock quotes, fundamentals, earnings, and news</div>
 
@@ -176,9 +177,8 @@ const fund=results[2].status==='fulfilled'?results[2].value:null;
 const earn=results[3].status==='fulfilled'?results[3].value:null;
 
 if(health){
-const st=document.getElementById('health-status');
-st.innerHTML='online \\u00B7 '+latency+'ms';
-st.style.color='#22c55e';
+document.getElementById('dot').classList.add('on');
+document.getElementById('health-status').textContent='online \\u00B7 '+latency+'ms';
 }
 
 if(quote){
