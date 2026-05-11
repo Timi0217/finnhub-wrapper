@@ -4,7 +4,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 import httpx
 
 
@@ -24,6 +24,230 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Finnhub Wrapper", lifespan=lifespan)
+
+
+HOME_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finnhub Wrapper</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#fff;padding:40px 20px;line-height:1.5}
+.w{max-width:640px;margin:0 auto}
+.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.t{font-family:'Courier New',monospace;font-style:italic;font-size:28px;color:#2BBFBF;font-weight:600}
+.st{display:flex;align-items:center;gap:6px;font-size:13px;color:#666;font-family:'Courier New',monospace}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e}
+.sb{color:#888;font-size:14px;margin-bottom:32px}
+.cd{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;margin-bottom:16px;opacity:0;animation:fi .6s ease forwards}
+@keyframes fi{to{opacity:1}}
+.cd:nth-child(2){animation-delay:.1s}
+.cd:nth-child(3){animation-delay:.2s}
+.cd:nth-child(4){animation-delay:.3s}
+.qh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.sy{font-size:32px;font-weight:700;color:#fff;font-family:'Courier New',monospace}
+.cm{font-size:13px;color:#666;margin-top:4px}
+.up{font-size:11px;color:#666;font-family:'Courier New',monospace;text-align:right}
+.pr{font-size:48px;font-weight:700;color:#fff;margin-bottom:8px}
+.ch{font-size:20px;font-weight:600;margin-bottom:16px}
+.gr{color:#22c55e}
+.rd{color:#ef4444}
+.sp{display:flex;gap:2px;height:32px;align-items:flex-end;margin-bottom:16px}
+.br{flex:1;background:rgba(43,191,191,.3);border-radius:2px;transition:all .3s}
+.og{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.oi{text-align:center}
+.ol{font-size:11px;color:#666;margin-bottom:4px;font-family:'Courier New',monospace}
+.ov{font-size:16px;font-weight:600;color:#fff}
+.sc{font-size:14px;color:#888;margin-bottom:12px;font-weight:600;letter-spacing:.5px}
+.er{display:grid;gap:12px}
+.ei{display:flex;justify-content:space-between;padding:12px;background:rgba(255,255,255,.02);border-radius:8px}
+.ep{font-size:13px;color:#fff;font-weight:600}
+.ev{font-size:13px;color:#888}
+.fm{margin-top:32px}
+.ix{display:flex;gap:8px;margin-bottom:12px}
+.ix input{flex:1;padding:12px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-size:14px;font-family:'Courier New',monospace}
+.ix input::placeholder{color:#666}
+.ix button{padding:12px 24px;background:#2BBFBF;border:none;border-radius:8px;color:#0a0a0a;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
+.ix button:hover{background:#24a8a8;transform:translateY(-1px)}
+.sg{display:flex;gap:8px;font-size:13px;color:#666;flex-wrap:wrap}
+.sg span{cursor:pointer;transition:color .2s}
+.sg span:hover{color:#2BBFBF}
+.rs{margin-top:16px;padding:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;display:none}
+.rs.show{display:block}
+.ld{color:#888;font-size:13px;font-style:italic}
+.er-msg{color:#ef4444;font-size:13px}
+</style>
+</head>
+<body>
+<div class="w">
+<div class="hd">
+<div class="t">Finnhub</div>
+<div class="st"><span class="dot"></span><span id="health-status">checking...</span></div>
+</div>
+<div class="sb">Real-time stock quotes, fundamentals, earnings, and news</div>
+
+<div class="cd" id="quote-card">
+<div class="qh">
+<div>
+<div class="sy" id="symbol">AAPL</div>
+<div class="cm" id="company">Loading...</div>
+</div>
+<div class="up" id="update-time">--:--:--</div>
+</div>
+<div class="pr" id="price">--</div>
+<div class="ch" id="change">--</div>
+<div class="sp" id="sparkline"></div>
+<div class="og">
+<div class="oi"><div class="ol">OPEN</div><div class="ov" id="open">--</div></div>
+<div class="oi"><div class="ol">HIGH</div><div class="ov" id="high">--</div></div>
+<div class="oi"><div class="ol">LOW</div><div class="ov" id="low">--</div></div>
+<div class="oi"><div class="ol">PREV CLOSE</div><div class="ov" id="prev">--</div></div>
+</div>
+</div>
+
+<div class="cd" id="earnings-card">
+<div class="sc">UPCOMING EARNINGS</div>
+<div class="er" id="earnings-list">
+<div class="ld">Loading earnings data...</div>
+</div>
+</div>
+
+<div class="fm">
+<div class="ix">
+<input type="text" id="symbol-input" placeholder="AAPL" maxlength="10">
+<button onclick="fetchSymbol()">\\u2192 quote</button>
+</div>
+<div class="sg">
+Try: <span onclick="trySymbol('TSLA')">TSLA</span> \\u00B7
+<span onclick="trySymbol('MSFT')">MSFT</span> \\u00B7
+<span onclick="trySymbol('GOOGL')">GOOGL</span> \\u00B7
+<span onclick="trySymbol('NVDA')">NVDA</span> \\u00B7
+<span onclick="trySymbol('META')">META</span>
+</div>
+<div class="rs" id="result"></div>
+</div>
+</div>
+
+<script>
+let currentSymbol='AAPL';
+
+function trySymbol(sym){document.getElementById('symbol-input').value=sym;fetchSymbol()}
+
+function fetchSymbol(){
+const input=document.getElementById('symbol-input');
+const sym=input.value.trim().toUpperCase();
+if(!sym)return;
+const resultDiv=document.getElementById('result');
+resultDiv.className='rs show';
+resultDiv.innerHTML='<div class="ld">Fetching '+sym+'...</div>';
+fetch('/quote?symbol='+sym)
+.then(r=>r.ok?r.json():r.json().then(e=>{throw new Error(e.detail||'Unknown error')}))
+.then(d=>{
+const chg=d.change||0;
+const pct=d.percent_change||0;
+const cls=chg>=0?'gr':'rd';
+const arr=chg>=0?'\\u25B2':'\\u25BC';
+resultDiv.innerHTML=`
+<div style="font-size:20px;font-weight:700;margin-bottom:8px">${sym}</div>
+<div style="font-size:32px;font-weight:700;margin-bottom:8px">$${(d.current_price||0).toFixed(2)}</div>
+<div class="${cls}" style="font-size:16px;font-weight:600">${arr} $${Math.abs(chg).toFixed(2)} (${pct.toFixed(2)}%)</div>
+`;
+})
+.catch(e=>{resultDiv.innerHTML='<div class="er-msg">Error: '+e.message+'</div>'});
+}
+
+document.getElementById('symbol-input').addEventListener('keypress',e=>{if(e.key==='Enter')fetchSymbol()});
+
+async function loadData(){
+const t0=Date.now();
+const results=await Promise.allSettled([
+fetch('/health').then(r=>r.json()),
+fetch('/quote?symbol='+currentSymbol).then(r=>r.json()),
+fetch('/fundamentals?symbol='+currentSymbol).then(r=>r.json()),
+fetch('/earnings?symbol='+currentSymbol).then(r=>r.json())
+]);
+const latency=Date.now()-t0;
+
+const health=results[0].status==='fulfilled'?results[0].value:null;
+const quote=results[1].status==='fulfilled'?results[1].value:null;
+const fund=results[2].status==='fulfilled'?results[2].value:null;
+const earn=results[3].status==='fulfilled'?results[3].value:null;
+
+if(health){
+const st=document.getElementById('health-status');
+st.innerHTML='online \\u00B7 '+latency+'ms';
+st.style.color='#22c55e';
+}
+
+if(quote){
+document.getElementById('price').textContent='$'+(quote.current_price||0).toFixed(2);
+const chg=quote.change||0;
+const pct=quote.percent_change||0;
+const cls=chg>=0?'gr':'rd';
+const arr=chg>=0?'\\u25B2':'\\u25BC';
+document.getElementById('change').innerHTML=`<span class="${cls}">${arr} $${Math.abs(chg).toFixed(2)} (${pct.toFixed(2)}%)</span>`;
+document.getElementById('open').textContent='$'+(quote.open||0).toFixed(2);
+document.getElementById('high').textContent='$'+(quote.high||0).toFixed(2);
+document.getElementById('low').textContent='$'+(quote.low||0).toFixed(2);
+document.getElementById('prev').textContent='$'+(quote.previous_close||0).toFixed(2);
+
+const now=new Date();
+document.getElementById('update-time').textContent=now.toTimeString().split(' ')[0];
+
+const vals=[quote.open||0,quote.high||0,quote.low||0,quote.current_price||0,quote.previous_close||0];
+const mn=Math.min(...vals);
+const mx=Math.max(...vals);
+const rng=mx-mn||1;
+const sp=document.getElementById('sparkline');
+sp.innerHTML='';
+vals.forEach(v=>{
+const h=((v-mn)/rng*100)||10;
+const bar=document.createElement('div');
+bar.className='br';
+bar.style.height=h+'%';
+bar.style.background=v>=(quote.previous_close||0)?'rgba(34,197,94,.6)':'rgba(239,68,68,.6)';
+sp.appendChild(bar);
+});
+}
+
+if(fund&&fund.profile){
+const prof=fund.profile;
+const name=prof.name||currentSymbol;
+const exch=prof.exchange||'NASDAQ';
+document.getElementById('company').textContent=name+' \\u00B7 '+exch;
+}
+
+if(earn&&earn.earnings){
+const list=document.getElementById('earnings-list');
+const items=earn.earnings;
+if(items.length===0){
+list.innerHTML='<div class="ev">No earnings data available</div>';
+}else{
+list.innerHTML='';
+items.slice(0,3).forEach(e=>{
+const surprise=e.surprise_pct?` (${e.surprise_pct>0?'+':''}${e.surprise_pct.toFixed(1)}% surprise)`:'';
+const ei=document.createElement('div');
+ei.className='ei';
+ei.innerHTML=`
+<div>
+<div class="ep">${e.period||'Unknown'}</div>
+<div class="ev">Est: $${(e.estimate||0).toFixed(2)}${e.actual!==null?' | Act: $'+e.actual.toFixed(2):''}</div>
+</div>
+<div class="ev">${surprise}</div>
+`;
+list.appendChild(ei);
+});
+}
+}
+}
+
+loadData();
+</script>
+</body>
+</html>
+"""
 
 
 def get_timestamp() -> str:
@@ -85,18 +309,8 @@ async def finnhub_request(endpoint: str, params: dict) -> dict:
 
 @app.get("/")
 async def root():
-    """API overview"""
-    return {
-        "name": "Finnhub Wrapper",
-        "description": "Real-time stock quotes, company fundamentals, earnings, and news from Finnhub",
-        "endpoints": [
-            {"path": "/quote?symbol=AAPL", "description": "Get current stock quote"},
-            {"path": "/fundamentals?symbol=AAPL", "description": "Get company profile and financial metrics"},
-            {"path": "/earnings?symbol=AAPL", "description": "Get earnings history"},
-            {"path": "/news?symbol=AAPL", "description": "Get company news"},
-            {"path": "/health", "description": "Health check"}
-        ]
-    }
+    """Rich HTML home page with live stock terminal"""
+    return HTMLResponse(content=HOME_HTML)
 
 
 @app.get("/health")
