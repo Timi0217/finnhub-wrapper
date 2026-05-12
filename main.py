@@ -197,7 +197,7 @@ fetch('/quote?symbol='+sym)
 const chg=d.change||0;
 const pct=d.percent_change||0;
 const cls=chg>=0?'up':'down';
-const arr=chg>=0?'\\u25B2':'\\u25BC';
+const arr=chg>=0?'\u25B2':'\u25BC';
 resultDiv.innerHTML=`
 <div style="font-size:18px;font-weight:700;margin-bottom:8px;color:#2BBFBF">${sym}</div>
 <div style="font-size:32px;font-weight:700;margin-bottom:8px;color:#fff">$${(d.current_price||0).toFixed(2)}</div>
@@ -225,7 +225,7 @@ const earn=data.earnings;
 // Health badge
 if(health){
 document.getElementById('dot').classList.add('on');
-document.getElementById('health-text').textContent='online \\u00B7 '+latency+'ms';
+document.getElementById('health-text').textContent='online \u00B7 '+latency+'ms';
 }
 
 // Quote data
@@ -234,7 +234,7 @@ document.getElementById('price').textContent='$'+(quote.current_price||0).toFixe
 const chg=quote.change||0;
 const pct=quote.percent_change||0;
 const cls=chg>=0?'up':'down';
-const arr=chg>=0?'\\u25B2':'\\u25BC';
+const arr=chg>=0?'\u25B2':'\u25BC';
 document.getElementById('change').innerHTML=`<span class="${cls}">${arr} $${Math.abs(chg).toFixed(2)} (${pct.toFixed(2)}%)</span>`;
 document.getElementById('open').textContent='$'+(quote.open||0).toFixed(2);
 document.getElementById('high').textContent='$'+(quote.high||0).toFixed(2);
@@ -266,7 +266,7 @@ if(fund&&fund.profile){
 const prof=fund.profile;
 const name=prof.name||currentSymbol;
 const exch=prof.exchange||'NASDAQ';
-document.getElementById('company').textContent=name+' \\u00B7 '+exch;
+document.getElementById('company').textContent=name+' \u00B7 '+exch;
 }
 
 // Fundamentals
@@ -306,7 +306,7 @@ ei.className='earning-item';
 ei.innerHTML=`
 <div>
 <div class="earning-period">${e.period||'Unknown'}</div>
-<div class="earning-data">Est: $${(e.estimate||0).toFixed(2)}${e.actual!==null?' \\u00B7 Act: $'+e.actual.toFixed(2):''}</div>
+<div class="earning-data">Est: $${(e.estimate||0).toFixed(2)}${e.actual!==null?' \u00B7 Act: $'+e.actual.toFixed(2):''}</div>
 </div>
 <div class="earning-surprise ${surpriseClass}">${surpriseText}</div>
 `;
