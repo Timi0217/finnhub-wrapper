@@ -161,7 +161,7 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background
 <div class="card">
 <div class="search-row">
 <input type="text" class="search-input" id="symbol-input" placeholder="Enter symbol (e.g., AAPL)" maxlength="10">
-<button class="search-btn" onclick="fetchSymbol()">Fetch \\u2192</button>
+<button class="search-btn" onclick="fetchSymbol()">Fetch &rarr;</button>
 </div>
 <div class="quick-chips">
 <span class="label">Quick:</span>
